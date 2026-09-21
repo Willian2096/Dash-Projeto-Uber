@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Projeto Uber • Dashboard v8</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root{
+      --bg:#06111c; --panel:#0b1b2c; --line:rgba(115,147,179,.18); --text:#eef5ff; --muted:#95a7bd;
+      --green:#2fe0ad; --green2:#16c784; --blue:#46a2ff; --purple:#9a69ff; --orange:#ff9a4a; --sidebar:#07131f;
+      --shadow:0 22px 50px rgba(0,0,0,.28); --radius:22px;
+    }
+    *{box-sizing:border-box} body{margin:0;color:var(--text);font:16px/1.4 'Inter',ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:radial-gradient(circle at 18% 12%, rgba(0,120,255,.18), transparent 34%),radial-gradient(circle at 82% 20%, rgba(24,255,188,.09), transparent 28%),linear-gradient(180deg,#05101a 0%,#071421 100%)}
+    button,input,select,textarea{font:inherit}
+    .layout{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+    .sidebar{background:linear-gradient(180deg, rgba(4,12,20,.98), rgba(6,18,28,.96));border-right:1px solid rgba(130,160,190,.08);padding:22px 14px;position:sticky;top:0;height:100vh}
+    .brand-mini{height:72px}.nav{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+    .nav button,.sidebar-footer button{width:100%;text-align:left;border:1px solid transparent;background:transparent;color:#b9c8d8;padding:14px 14px;border-radius:14px;display:flex;gap:12px;align-items:center;cursor:pointer}
+    .nav button.active{background:linear-gradient(90deg, rgba(35,183,135,.24), rgba(31,129,101,.18));border-color:rgba(53,219,165,.18);color:#f3fffb}.nav button .ico{font-size:20px;opacity:.95}
+    .sidebar-footer{position:absolute;left:14px;right:14px;bottom:18px}
+    .main{padding:28px 28px 34px}.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:22px}
+    .title-wrap{display:flex;gap:14px;align-items:flex-start}.title-icon{font-size:42px;line-height:1;margin-top:2px}
+    h1{margin:0;font-size:54px;line-height:1.05;letter-spacing:-.04em}.subtitle{margin-top:8px;color:var(--muted);font-size:20px}
+    .top-actions{display:flex;gap:14px;align-items:center}.month-select,.action-btn{border:1px solid var(--line);background:rgba(10,24,39,.82);color:var(--text);height:56px;border-radius:16px;padding:0 18px;box-shadow:var(--shadow)}
+    .month-select{min-width:220px}.action-btn{background:linear-gradient(180deg, rgba(23,152,116,.95), rgba(15,120,92,.95));border-color:rgba(47,224,173,.2);font-weight:700;cursor:pointer;padding:0 22px}
+    .grid-cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:18px;margin-bottom:20px}
+    .card,.panel{background:linear-gradient(180deg, rgba(11,27,44,.95), rgba(8,21,34,.96));border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow)}
+    .card{padding:22px 22px 20px;min-height:172px}.card .top{display:flex;gap:14px;align-items:flex-start}.card .ico{font-size:30px;line-height:1}.card .label{font-size:15px;color:#c3d0de}.card .value{font-size:28px;font-weight:800;letter-spacing:-.03em;margin-top:16px}.card .sub{margin-top:10px;color:var(--muted);font-size:15px}
+    .progress-bar{height:14px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden;margin-top:16px}.progress-bar span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#2fe0ad,#16c784)}
+    .stat-positive{color:var(--green)}
+    .dashboard-grid{display:grid;grid-template-columns:2.3fr 1.05fr;gap:18px;margin-bottom:20px}.panel{padding:22px}.panel h2{margin:0 0 10px;font-size:18px;letter-spacing:-.02em}
+    .panel-top{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:8px}.mini-legend{display:flex;gap:18px;flex-wrap:wrap;color:var(--muted);font-size:13px}.mini-legend span{display:flex;align-items:center;gap:8px}
+    .legend-dot{width:10px;height:10px;border-radius:999px;display:inline-block}.legend-line{width:18px;height:2px;border-radius:999px;display:inline-block;background:#3b9dff}
+    .linechart{width:100%;height:290px;display:block}
+    .summary-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}.summary-head .arrow{font-size:28px;color:#9db4cc}.summary-meta{color:var(--muted);font-size:14px;margin-bottom:14px}
+    .summary-row{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.07)}.summary-row:last-of-type{border-bottom:none}
+    .summary-row .k{color:#c6d2de}.summary-row .v{font-size:18px}.summary-bottom{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.09)}
+    .liquid-big{display:flex;justify-content:space-between;align-items:flex-end}.liquid-big .title{font-size:20px;font-weight:800;color:var(--green)}.liquid-big .value{font-size:32px;font-weight:800;color:var(--green)}.liquid-sub{display:flex;justify-content:space-between;color:#c9d7e6;font-size:14px;margin-top:6px}
+    .lower-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+    .table-like .thead,.table-like .row{display:grid;grid-template-columns:1.3fr .7fr .9fr;gap:10px;align-items:center}.table-like .thead{color:var(--muted);font-size:13px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.08)}.table-like .row{padding:14px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+    .strategy-pill{display:flex;align-items:center;gap:10px}.dot{width:14px;height:14px;border-radius:50%}.note-box{margin-top:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.05);border-radius:16px;padding:14px 16px;color:#c6d6e5;font-size:14px}
+    .gauge-wrap{display:grid;grid-template-columns:140px 1fr;gap:8px;align-items:center;margin-top:8px}.gauge{width:130px;height:130px;border-radius:50%;background:conic-gradient(var(--green) 0 277deg, rgba(255,255,255,.08) 277deg 360deg);display:grid;place-items:center;position:relative;margin:auto}.gauge::after{content:'';position:absolute;inset:13px;border-radius:50%;background:linear-gradient(180deg, rgba(8,20,33,.97), rgba(9,24,39,.97));border:1px solid rgba(255,255,255,.04)}
+    .gauge-center{position:relative;z-index:2;text-align:center}.gauge-center .v{font-size:22px;font-weight:800}.gauge-center .s{font-size:14px;color:#d9e6f2}
+    .fuel-metrics{display:grid;gap:10px}.fuel-row{display:flex;justify-content:space-between;gap:10px;color:#d8e4ef}.fuel-row span:first-child{color:var(--muted)}
+    .panel-btn{margin-top:18px;width:100%;height:48px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:#eef5ff;cursor:pointer}
+    .bars{display:flex;align-items:flex-end;gap:18px;height:210px;padding:18px 0 8px}.bar-item{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:10px;flex:1}
+    .bar-col{width:100%;max-width:72px;border-radius:12px 12px 0 0;background:linear-gradient(180deg, rgba(45,224,173,.9), rgba(25,150,116,.95))}
+    .bar-col.blue{background:linear-gradient(180deg, #4aa0ff, #3172e1)} .bar-col.purple{background:linear-gradient(180deg, #ac80ff, #8858f1)} .bar-col.gray{background:linear-gradient(180deg, #6b7b8e, #495a71)}
+    .bar-value{font-size:14px;color:#d8e4ef}.bar-label{text-align:center;font-size:14px;color:#d1deea}
+    .routine-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}.routine-top a{color:#8ab7ff;text-decoration:none;font-size:14px}
+    .routine-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px 8px;text-align:center}.routine-grid .head{color:#c7d5e3;font-size:14px}.routine-label{color:#d8e3ef;text-align:left}
+    .cell-dot{width:14px;height:14px;border-radius:50%;display:inline-block}.cell-dot.active{background:#35dca9}.cell-dot.rest{background:#4ea5ff}.cell-dot.special{background:#9a69ff}.cell-dot.off{background:#6f7e90}
+    .routine-legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:16px;font-size:14px;color:#c2d2e0}.tip-box{margin-top:16px;background:rgba(255,255,255,.04);border-radius:16px;padding:14px 16px;border:1px solid rgba(255,255,255,.05)}.tip-title{color:#ffd166;font-weight:700;margin-bottom:6px}
+    .footer-controls{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}.secondary-btn{border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--text);border-radius:12px;height:42px;padding:0 14px;cursor:pointer}
+    dialog{border:none;border-radius:20px;padding:0;background:transparent;max-width:min(860px,94vw);width:94vw}dialog::backdrop{background:rgba(0,0,0,.58)}
+    .modal{background:linear-gradient(180deg, rgba(11,27,44,.98), rgba(8,21,34,.99));border:1px solid var(--line);border-radius:22px;padding:22px;box-shadow:var(--shadow)} .modal h3{margin:0 0 6px}.modal p{margin:0 0 16px;color:var(--muted)}
+    .form-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.form-grid.two{grid-template-columns:repeat(2,1fr)} label{display:block;font-size:13px;color:#c1d0df;margin-bottom:6px}
+    input,select,textarea{width:100%;background:rgba(255,255,255,.03);color:var(--text);border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:12px 12px;outline:none} textarea{min-height:90px;resize:vertical}.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
+
+    .lucide{width:1.15em;height:1.15em;stroke-width:1.9}
+    .title-icon .lucide{width:42px;height:42px;stroke-width:1.9}
+    .nav .lucide,.sidebar-footer .lucide{width:19px;height:19px}
+    .card .ico .lucide{width:28px;height:28px}
+    .panel h2 .lucide{width:18px;height:18px}
+
+    .hidden{display:none!important}
+    @media (max-width:1400px){.grid-cards{grid-template-columns:repeat(3,minmax(0,1fr))}.lower-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media (max-width:1120px){.layout{grid-template-columns:1fr}.sidebar{position:relative;height:auto;padding-bottom:90px}.sidebar-footer{position:static;margin-top:20px}.dashboard-grid{grid-template-columns:1fr}.topbar{flex-direction:column}h1{font-size:42px}.main{padding:18px}}
+    @media (max-width:760px){.grid-cards{grid-template-columns:1fr}.lower-grid{grid-template-columns:1fr}.form-grid,.form-grid.two{grid-template-columns:1fr}.top-actions{flex-direction:column;align-items:stretch;width:100%}.month-select,.action-btn{width:100%}.gauge-wrap{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand-mini"></div>
+      <nav class="nav">
+        <button class="active"><span class="ico"><i data-lucide="house"></i></span><span>Visão geral</span></button>
+        <button><span class="ico"><i data-lucide="chart-no-axes-column-increasing"></i></span><span>Análises</span></button>
+        <button><span class="ico"><i data-lucide="history"></i></span><span>Histórico</span></button>
+        <button><span class="ico"><i data-lucide="compass"></i></span><span>Estratégias</span></button>
+        <button><span class="ico"><i data-lucide="fuel"></i></span><span>Combustível</span></button>
+        <button id="routineOpenBtn"><span class="ico"><i data-lucide="calendar-days"></i></span><span>Rotina</span></button>
+        <button><span class="ico"><i data-lucide="file-text"></i></span><span>Relatórios</span></button>
+      </nav>
+      <div class="sidebar-footer"><button id="settingsOpenBtn"><span class="ico"><i data-lucide="settings"></i></span><span>Configurações</span></button></div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="title-wrap">
+          <div class="title-icon"><i data-lucide="bike"></i></div>
+          <div>
+            <h1>Projeto Uber</h1>
+            <div class="subtitle">Resultado líquido por hora, baseado nos seus próprios dados.</div>
+          </div>
+        </div>
+        <div class="top-actions">
+          <select id="monthSelect" class="month-select"></select>
+          <button id="openRegister" class="action-btn"><i data-lucide="plus" style="vertical-align:-3px;margin-right:6px"></i> Registrar sessão</button>
+        </div>
+      </div>
+
+      <section class="grid-cards">
+        <article class="card"><div class="top"><div class="ico" style="color:var(--green)"><i data-lucide="target"></i></div><div class="label">Meta do mês</div></div><div class="value" id="metaMes">R$ 0,00</div><div class="sub">Meta mensal configurada</div></article>
+        <article class="card"><div class="top"><div class="ico" style="color:#51a5ff"><i data-lucide="coins"></i></div><div class="label">Líquido acumulado</div></div><div class="value" id="liquidoAcumulado">R$ 0,00</div><div class="sub"><span id="liquidoPct">0%</span> da meta</div><div class="progress-bar"><span id="goalProgress" style="width:0%"></span></div></article>
+        <article class="card"><div class="top"><div class="ico" style="color:var(--purple)"><i data-lucide="zap"></i></div><div class="label">R$/hora líquido</div></div><div class="value" id="rsHoraLiquido">R$ 0,00</div><div class="sub"><span class="stat-positive" id="deltaMedia">↑ 0%</span> vs. média anterior</div></article>
+        <article class="card"><div class="top"><div class="ico" style="color:#9fc7ff"><i data-lucide="clock-3"></i></div><div class="label">Projeção do mês</div></div><div class="value" id="projecaoMes">R$ 0,00</div><div class="sub">No ritmo atual</div></article>
+        <article class="card"><div class="top"><div class="ico" style="color:var(--orange)"><i data-lucide="flag"></i></div><div class="label">Falta para a meta</div></div><div class="value" id="faltaMeta">R$ 0,00</div><div class="sub" id="needText">Precisa de 0h de trabalho</div></article>
+      </section>
+
+      <section class="dashboard-grid">
+        <article class="panel">
+          <div class="panel-top"><div><h2><i data-lucide="trending-up" style="vertical-align:-3px;margin-right:7px"></i>Evolução do líquido por dia</h2></div><div class="mini-legend"><span><i class="legend-dot" style="background:var(--green)"></i>Líquido por dia</span><span><i class="legend-line"></i><span id="avgLegend">Média necessária</span></span></div></div>
+          <svg id="mainChart" class="linechart" viewBox="0 0 900 290" preserveAspectRatio="none"></svg>
+        </article>
+        <article class="panel">
+          <div class="summary-head"><div><h2><i data-lucide="calendar-days" style="vertical-align:-3px;margin-right:7px"></i>Resumo da última sessão</h2><div class="summary-meta" id="lastSessionMeta">—</div></div><div class="arrow">›</div></div>
+          <div id="lastSessionBox"><div class="summary-row"><span class="k">Tempo trabalhado</span><span class="v">—</span></div></div>
+          <div class="summary-bottom"><div class="liquid-big"><div class="title">Líquido</div><div class="value" id="lastLiquidValue">R$ 0,00</div></div><div class="liquid-sub"><span>R$/hora líquido</span><strong id="lastLiquidHour">R$ 0,00</strong></div></div>
+        </article>
+      </section>
+
+      <section class="lower-grid">
+        <article class="panel">
+          <h2><i data-lucide="trending-up" style="vertical-align:-3px;margin-right:7px"></i>Desempenho por estratégia</h2>
+          <div style="color:var(--muted);font-size:14px;margin-bottom:12px">Com base nas sessões registradas.</div>
+          <div class="table-like">
+            <div class="thead"><div>Estratégia</div><div>Sessões</div><div>R$/h (líquido)</div></div>
+            <div id="strategyRows"></div>
+          </div>
+          <div class="note-box" id="strategyNote">Sem dados suficientes para concluir.</div>
+        </article>
+
+        <article class="panel">
+          <h2><i data-lucide="fuel" style="vertical-align:-3px;margin-right:7px"></i>Combustível</h2>
+          <div style="color:var(--muted);font-size:14px;margin-bottom:6px" id="fuelTestDate">Último teste: —</div>
+          <div class="gauge-wrap">
+            <div class="gauge"><div class="gauge-center"><div class="v" id="gaugeKmL">27</div><div class="s">km/L</div></div></div>
+            <div class="fuel-metrics">
+              <div class="fuel-row"><span>Km rodados</span><strong id="fuelKm">66,2 km</strong></div>
+              <div class="fuel-row"><span>Litros consumidos</span><strong id="fuelConsumed">2,39 L</strong></div>
+              <div class="fuel-row"><span>Custo combustível</span><strong id="fuelCost">R$ 16,35</strong></div>
+              <div class="fuel-row"><span>Custo/km</span><strong id="fuelCostKm">R$ 0,25</strong></div>
+              <div class="fuel-row"><span>Custo/hora</span><strong id="fuelCostHour">R$ 0,00</strong></div>
+            </div>
+          </div>
+          <button id="fuelOpenBtn" class="panel-btn">Ver detalhes do teste ›</button>
+        </article>
+
+        <article class="panel">
+          <h2><i data-lucide="chart-column-increasing" style="vertical-align:-3px;margin-right:7px"></i>Comparativo de desempenho</h2>
+          <div style="color:var(--muted);font-size:14px;margin-bottom:8px">Média por dia (líquido)</div>
+          <div class="bars" id="compareBars"></div>
+        </article>
+
+        <article class="panel">
+          <div class="routine-top"><div><h2><i data-lucide="calendar-range" style="vertical-align:-3px;margin-right:7px"></i>Rotina planejada</h2></div><a href="javascript:void(0)" id="openRoutineLink">Ver calendário</a></div>
+          <div class="routine-grid" id="routineGrid"></div>
+          <div class="routine-legend"><span><i class="cell-dot active"></i> Ativo</span><span><i class="cell-dot rest"></i> Descanso</span><span><i class="cell-dot special"></i> Especial</span></div>
+          <div class="tip-box"><div class="tip-title"><i data-lucide="sun" style="vertical-align:-3px;margin-right:6px"></i>Melhor horário (R$/h)</div><div id="bestPeriodText">Sem dados ainda.</div></div>
+        </article>
+      </section>
+
+      <div class="footer-controls">
+        <button id="exportBtn" class="secondary-btn"><i data-lucide="download" style="vertical-align:-3px;margin-right:6px"></i>Exportar dados</button>
+        <button id="importTrigger" class="secondary-btn"><i data-lucide="upload" style="vertical-align:-3px;margin-right:6px"></i>Importar dados</button>
+        <input id="importFile" type="file" accept=".json,application/json" class="hidden">
+      </div>
+    </main>
+  </div>
+
+  <dialog id="registerDialog"><div class="modal"><h3>Registrar sessão</h3><p>Cadastre uma nova sessão para atualizar os indicadores automaticamente.</p><form id="registerForm"><div class="form-grid"><div><label>Data</label><input type="date" name="date" required></div><div><label>Período</label><select name="period"><option>Noite</option><option>Manhã</option><option>Tarde</option><option>Noite normal</option><option>Outro</option></select></div><div><label>Estratégia</label><select name="strategy"><option value="volume">Volume</option><option value="seletiva">Seletiva</option><option value="mista">Mista</option><option value="nao_classificada">Não classificada</option></select></div><div><label>Ganho bruto (R$)</label><input type="number" step="0.01" name="gross" required></div><div><label>Horas</label><input type="number" min="0" step="1" name="hours"></div><div><label>Minutos</label><input type="number" min="0" max="59" step="1" name="mins"></div><div><label>Corridas</label><input type="number" min="0" step="1" name="rides"></div><div><label>Km rodados</label><input type="number" step="0.1" name="km"></div></div><div style="margin-top:12px"><label>Observação</label><textarea name="note" placeholder="Ex.: corridas curtas em região movimentada..."></textarea></div><div class="modal-actions"><button type="button" class="secondary-btn" onclick="registerDialog.close()">Cancelar</button><button type="submit" class="action-btn" style="height:46px">Salvar sessão</button></div></form></div></dialog>
+  <dialog id="settingsDialog"><div class="modal"><h3>Configurações do projeto</h3><p>Atualize a meta, consumo e valores-base do projeto.</p><form id="settingsForm"><div class="form-grid two"><div><label>Meta do mês (R$)</label><input type="number" step="0.01" name="goal"></div><div><label>Acumulado anterior ao dashboard (R$)</label><input type="number" step="0.01" name="baseline"></div><div><label>Data de referência</label><input type="date" name="referenceDate"></div><div><label>Preço da gasolina (R$/L)</label><input type="number" step="0.01" name="fuelPrice"></div><div><label>Consumo oficial (km/L)</label><input type="number" step="0.1" name="confirmedConsumption"></div><div><label>Abastecimento atual (R$)</label><input type="number" step="0.01" name="currentFuelSpend"></div></div><div class="modal-actions"><button type="button" class="secondary-btn" onclick="settingsDialog.close()">Cancelar</button><button type="submit" class="action-btn" style="height:46px">Salvar</button></div></form></div></dialog>
+  <dialog id="routineDialog"><div class="modal"><h3>Editar rotina</h3><p>Ative ou desative os dias de trabalho e ajuste a descrição de cada um.</p><form id="routineForm"><div id="routineFormRows" style="display:grid;gap:10px"></div><div class="modal-actions"><button type="button" class="secondary-btn" onclick="routineDialog.close()">Cancelar</button><button type="submit" class="action-btn" style="height:46px">Salvar rotina</button></div></form></div></dialog>
+  <dialog id="fuelDialog"><div class="modal"><h3>Teste de combustível</h3><p>Defina o teste que será usado como base para o consumo oficial.</p><form id="fuelForm"><div class="form-grid two"><div><label>Distância desde o abastecimento (km)</label><input type="number" step="0.1" name="distance"></div><div><label>Distância até entrar na reserva (km)</label><input type="number" step="0.1" name="reserveDistance"></div><div><label>Litros abastecidos no início</label><input type="number" step="0.01" name="startLiters"></div><div><label>Reserva estimada (L)</label><input type="number" step="0.01" name="reserveLiters"></div><div><label>Preço da gasolina</label><input type="number" step="0.01" name="refillPrice"></div><div><label>Consumo medido (km/L)</label><input type="text" name="previewKmL" readonly></div></div><div class="modal-actions"><button type="button" class="secondary-btn" onclick="fuelDialog.close()">Cancelar</button><button type="submit" class="action-btn" style="height:46px">Salvar teste</button></div></form></div></dialog>
+
+<script>
+const KEY='projetoUberDashboard_v8';
+const defaultState={settings:{goal:758.41,baseline:90.22,referenceDate:'2026-09-17',fuelPrice:6.84,currentFuelSpend:30,confirmedConsumption:27},fuelTest:{distance:66.2,reserveDistance:66.2,startLiters:4.39,reserveLiters:2.00,refillPrice:6.84},routine:{1:{enabled:true,label:'Manhã + 18h–21h',morning:'active',afternoon:'active',night:'active'},2:{enabled:true,label:'Volta para casa',morning:'rest',afternoon:'rest',night:'active'},3:{enabled:true,label:'Manhã + 18h–21h',morning:'active',afternoon:'active',night:'active'},4:{enabled:true,label:'Manhã + 18h–21h',morning:'active',afternoon:'active',night:'active'},5:{enabled:false,label:'Descanso',morning:'rest',afternoon:'rest',night:'rest'},6:{enabled:true,label:'5h30–12h',morning:'special',afternoon:'rest',night:'rest'},0:{enabled:false,label:'Descanso',morning:'rest',afternoon:'rest',night:'rest'}},sessions:[{id:'sessao-2026-09-17',date:'2026-09-17',period:'Noite',strategy:'seletiva',gross:76.95,minutes:198,rides:7,km:51.9,note:'Grandes centros e corridas menores. Uma corrida longa terminou perto de casa e encerrou a sessão.'}]};
+function clone(v){return JSON.parse(JSON.stringify(v))} function loadState(){try{const raw=localStorage.getItem(KEY); if(!raw)return clone(defaultState); const saved=JSON.parse(raw); const m=clone(defaultState); m.settings=Object.assign({},m.settings,saved.settings||{}); m.fuelTest=Object.assign({},m.fuelTest,saved.fuelTest||{}); m.routine=Object.assign({},m.routine,saved.routine||{}); m.sessions=Array.isArray(saved.sessions)?saved.sessions:clone(defaultState.sessions); return m}catch(e){return clone(defaultState)}} let state=loadState();
+function refreshIcons(){if(window.lucide) lucide.createIcons()} function saveState(){localStorage.setItem(KEY,JSON.stringify(state));renderAll()} function money(v){return Number.isFinite(v)?v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'—'} function num(v,d=1){return Number.isFinite(v)?v.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d}):'—'} function formatDateBR(s,f=true){if(!s)return'—';const p=String(s).split('-');if(p.length!==3)return s;const[y,m,d]=p;return f?`${d}/${m}/${y}`:`${d}/${m}`} function formatMonthBR(ym){const[y,m]=String(ym).split('-');const months=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];return `${months[Math.max(1,Math.min(12,Number(m)))-1]}/${y}`} function hoursLabel(mins){if(!mins)return'—';const h=Math.floor(mins/60),m=mins%60;return `${h}h${String(m).padStart(2,'0')}min`}
+function activeFuelPrice(){return Number(state.fuelTest.refillPrice)||Number(state.settings.fuelPrice)||0} function consumedFuelLiters(){const start=Number(state.fuelTest.startLiters)||0,reserve=Number(state.fuelTest.reserveLiters)||0; if(start>reserve) return start-reserve; return null}
+function calcSession(s){const gross=Number(s.gross)||0, mins=Number(s.minutes)||0, km=Number(s.km)||0, kmL=Number(state.settings.confirmedConsumption)||27, price=activeFuelPrice(); const ph=mins>0?gross/(mins/60):null; const fuel=km>0&&kmL>0?(km/kmL)*price:null; const net=fuel!==null?gross-fuel:gross; const netPh=mins>0&&net!==null?net/(mins/60):null; const pk=km>0?gross/km:null; const margin=gross>0&&net!==null?(net/gross)*100:null; return {ph,fuel,net,netPh,pk,margin}}
+function getRows(){return [...state.sessions].filter(s=>s.date).map(s=>({...s,...calcSession(s),month:String(s.date).slice(0,7)})).sort((a,b)=>a.date.localeCompare(b.date))}
+function plannedRemainingDays(){const ref=new Date(state.settings.referenceDate+'T12:00:00');const end=new Date(ref.getFullYear(),ref.getMonth()+1,0,12);let count=0;for(let d=new Date(ref);d<=end;d.setDate(d.getDate()+1)){const dow=d.getDay(); if(state.routine?.[dow]?.enabled) count++} return count}
+function activeDaysInMonthForProjection(){const ref=new Date(state.settings.referenceDate+'T12:00:00');const start=new Date(ref.getFullYear(),ref.getMonth(),1,12);const end=new Date(ref.getFullYear(),ref.getMonth()+1,0,12);let count=0;for(let d=new Date(start);d<=end;d.setDate(d.getDate()+1)){const dow=d.getDay(); if(state.routine?.[dow]?.enabled) count++} return count}
+function groupByDate(rows){const map={}; rows.forEach(r=>{if(!map[r.date]) map[r.date]={date:r.date,gross:0,net:0,minutes:0,km:0,rides:0,count:0}; map[r.date].gross+=Number(r.gross)||0; map[r.date].net+=Number(r.net)||0; map[r.date].minutes+=Number(r.minutes)||0; map[r.date].km+=Number(r.km)||0; map[r.date].rides+=Number(r.rides)||0; map[r.date].count+=1}); return Object.values(map).sort((a,b)=>a.date.localeCompare(b.date)).map(d=>{d.margin=d.gross>0?(d.net/d.gross)*100:null; d.netPh=d.minutes>0?d.net/(d.minutes/60):null; d.ph=d.minutes>0?d.gross/(d.minutes/60):null; return d})}
+function getStrategyStats(rows){const defs={volume:{label:'Volume',color:'#2fe0ad'},seletiva:{label:'Seletiva',color:'#46a2ff'},mista:{label:'Mista',color:'#9a69ff'}};const out=[];Object.entries(defs).forEach(([key,meta])=>{const arr=rows.filter(r=>r.strategy===key); const mins=arr.reduce((a,r)=>a+(Number(r.minutes)||0),0); const net=arr.reduce((a,r)=>a+(Number(r.net)||0),0); const netPh=mins>0?net/(mins/60):null; out.push({key,...meta,count:arr.length,netPh})});return out}
+function getBestPeriod(rows){const buckets={Manhã:[],Tarde:[],Noite:[]}; rows.forEach(r=>{const p=String(r.period||'').toLowerCase(); if(p.includes('manhã')) buckets['Manhã'].push(r); else if(p.includes('tarde')) buckets['Tarde'].push(r); else buckets['Noite'].push(r)}); let best=null; Object.entries(buckets).forEach(([name,arr])=>{const mins=arr.reduce((a,r)=>a+(Number(r.minutes)||0),0); const net=arr.reduce((a,r)=>a+(Number(r.net)||0),0); const ph=mins>0?net/(mins/60):null; if(ph!==null&&(!best||ph>best.ph)) best={name,ph}}); return best}
+function fillMonthSelect(){const ref=new Date(state.settings.referenceDate+'T12:00:00'); const ym=`${ref.getFullYear()}-${String(ref.getMonth()+1).padStart(2,'0')}`; monthSelect.innerHTML=`<option value="${ym}">${formatMonthBR(ym)}</option>`; monthSelect.value=ym}
+function renderCards(rows,daily){const totalGross=rows.reduce((a,r)=>a+(Number(r.gross)||0),0), totalNet=rows.reduce((a,r)=>a+(Number(r.net)||0),0), totalMins=rows.reduce((a,r)=>a+(Number(r.minutes)||0),0); const accumulated=Number(state.settings.baseline||0)+totalGross; const goal=Number(state.settings.goal)||0; const pct=goal>0?(accumulated/goal)*100:0; const totalNetPerHour=totalMins>0?totalNet/(totalMins/60):0; const elapsedWorkingDays=Math.max(1,daily.length); const activeDaysMonth=Math.max(1,activeDaysInMonthForProjection()); const avgDailyNet=elapsedWorkingDays>0?totalNet/elapsedWorkingDays:0; const projection=Number(state.settings.baseline||0)+avgDailyNet*activeDaysMonth; const remaining=Math.max(0,goal-accumulated); const remainingActiveDays=Math.max(1,plannedRemainingDays()); const avgNeededPerDay=remaining/remainingActiveDays; const hoursNeeded=totalNetPerHour>0?remaining/totalNetPerHour:0; const hoursPerDay=remainingActiveDays>0?hoursNeeded/remainingActiveDays:0;
+metaMes.textContent=money(goal); liquidoAcumulado.textContent=money(accumulated); liquidoPct.textContent=`${num(pct,1)}%`; goalProgress.style.width=`${Math.min(100,pct)}%`; rsHoraLiquido.textContent=money(totalNetPerHour); projecaoMes.textContent=money(projection); faltaMeta.textContent=money(remaining); avgLegend.textContent=`Média necessária (${money(avgNeededPerDay)})`; let deltaText='↑ 0%'; if(rows.length>=2){const prevRows=rows.slice(0,-1).filter(r=>r.netPh!==null); const prev=prevRows.reduce((a,r)=>a+(r.netPh||0),0)/Math.max(1,prevRows.length); const last=rows[rows.length-1].netPh||0; if(prev>0){const delta=((last-prev)/prev)*100; deltaText=`${delta>=0?'↑':'↓'} ${num(Math.abs(delta),1)}%`}} deltaMedia.textContent=deltaText; needText.textContent=`Precisa de ${hoursNeeded?hoursLabel(Math.round(hoursNeeded*60)):'—'} de trabalho (~${hoursPerDay?hoursLabel(Math.round(hoursPerDay*60)):'—'}/dia em ${remainingActiveDays} dias)`}
+function renderMainChart(daily){const svg=document.getElementById('mainChart'); const ref=new Date(state.settings.referenceDate+'T12:00:00'); const lastDay=ref.getDate(); const dailyMap={}; daily.forEach(d=>dailyMap[Number(d.date.slice(8,10))]=d.net); const values=[]; for(let day=1; day<=lastDay; day++) values.push({day,value:dailyMap[day]??null}); const actualValues=values.filter(v=>v.value!==null).map(v=>v.value); const goal=Number(state.settings.goal)||0; const accumulated=Number(state.settings.baseline||0)+daily.reduce((a,d)=>a+d.gross,0); const remaining=Math.max(0,goal-accumulated); const avgNeeded=remaining/Math.max(1,plannedRemainingDays()); const W=900,H=290,padL=54,padR=24,padT=18,padB=40,plotW=W-padL-padR,plotH=H-padT-padB; const maxY=Math.max(avgNeeded,...actualValues,10)*1.25; const y=v=>padT+plotH-(v/maxY)*plotH; const x=i=>padL+((i)/(Math.max(1,lastDay-1)))*plotW; let out=''; for(let i=0;i<=4;i++){const val=(maxY/4)*i, yy=y(val); out+=`<line x1="${padL}" y1="${yy}" x2="${W-padR}" y2="${yy}" stroke="rgba(255,255,255,.07)"/><text x="${padL-8}" y="${yy+4}" text-anchor="end" fill="#9db3c7" font-size="12">${money(val).replace(',00','')}</text>`} out+=`<line x1="${padL}" y1="${H-padB}" x2="${W-padR}" y2="${H-padB}" stroke="rgba(255,255,255,.12)"/><line x1="${padL}" y1="${y(avgNeeded)}" x2="${W-padR}" y2="${y(avgNeeded)}" stroke="#3b9dff" stroke-dasharray="8 6" />`; let points=[]; values.forEach((v,idx)=>{const xx=x(idx); out+=`<text x="${xx}" y="${H-14}" text-anchor="middle" fill="#b1c3d6" font-size="12">${v.day}</text>`; if(v.value!==null){const yy=y(v.value); points.push(`${xx},${yy}`); out+=`<circle cx="${xx}" cy="${yy}" r="5" fill="#2fe0ad"/>`; out+=`<text x="${xx}" y="${yy-10}" text-anchor="middle" fill="#ddf4ea" font-size="12">${money(v.value).replace(',00','')}</text>`}}); if(points.length===1){out+=`<polyline fill="none" stroke="#2fe0ad" stroke-width="4" points="${points[0]} ${points[0]}"/>`} else if(points.length>1){out+=`<polyline fill="none" stroke="#2fe0ad" stroke-width="4" points="${points.join(' ')}"/>`} svg.innerHTML=out}
+function renderLastSession(rows){const box=document.getElementById('lastSessionBox'); if(!rows.length){box.innerHTML='<div class="summary-row"><span class="k">Sem sessões registradas.</span><span class="v">—</span></div>'; return} const last=[...rows].sort((a,b)=>b.date.localeCompare(a.date))[0]; lastSessionMeta.textContent=`${formatDateBR(last.date)} • ${last.period||'—'}`; box.innerHTML=`<div class="summary-row"><span class="k">Tempo trabalhado</span><span class="v">${hoursLabel(last.minutes||0)}</span></div><div class="summary-row"><span class="k">Corridas</span><span class="v">${last.rides||0}</span></div><div class="summary-row"><span class="k">Km rodados</span><span class="v">${num(last.km||0,1)}</span></div><div class="summary-row"><span class="k">Faturamento bruto</span><span class="v">${money(last.gross||0)}</span></div><div class="summary-row"><span class="k">Combustível</span><span class="v">- ${money(last.fuel||0)}</span></div>`; lastLiquidValue.textContent=money(last.net||0); lastLiquidHour.textContent=money(last.netPh||0)}
+function renderStrategies(rows){const stats=getStrategyStats(rows); strategyRows.innerHTML=stats.map(s=>`<div class="row"><div class="strategy-pill"><i class="dot" style="background:${s.color}"></i><span>${s.label}</span></div><div>${s.count}</div><div>${s.netPh!==null?money(s.netPh):'—'}</div></div>`).join(''); const best=stats.filter(s=>s.netPh!==null).sort((a,b)=>b.netPh-a.netPh)[0]; strategyNote.innerHTML=best?`<i data-lucide="trophy" style="vertical-align:-3px;margin-right:6px"></i><strong>${best.label}</strong> tem entregado o melhor resultado por hora.`:'Sem dados suficientes para concluir qual estratégia está performando melhor.'}
+function renderFuel(rows){const kmL=Number(state.settings.confirmedConsumption)||27, dist=Number(state.fuelTest.reserveDistance)||0, consumed=consumedFuelLiters()||0, price=activeFuelPrice(), fuelCost=consumed*price, totalFuel=rows.reduce((a,r)=>a+(r.fuel||0),0), totalMins=rows.reduce((a,r)=>a+(Number(r.minutes)||0),0), fuelHour=totalMins>0?totalFuel/(totalMins/60):0; gaugeKmL.textContent=num(kmL,0); fuelTestDate.textContent=`Último teste: ${formatDateBR(state.settings.referenceDate)}`; fuelKm.textContent=`${num(dist,1)} km`; fuelConsumed.textContent=`${num(consumed,2)} L`; fuelCost.textContent=money(fuelCost); fuelCostKm.textContent=money(price/kmL); fuelCostHour.textContent=money(fuelHour)}
+function renderCompareBars(daily){const goal=Number(state.settings.goal)||0, accumulated=Number(state.settings.baseline||0)+daily.reduce((a,d)=>a+d.gross,0), remaining=Math.max(0,goal-accumulated), avgNeeded=remaining/Math.max(1,plannedRemainingDays()), best=daily.length?Math.max(...daily.map(d=>d.net)):0, avg=daily.length?daily.reduce((a,d)=>a+d.net,0)/daily.length:0, worst=daily.length?Math.min(...daily.map(d=>d.net)):0; const items=[{label:'Melhor dia',value:best,cls:''},{label:'Média',value:avg,cls:'blue'},{label:'Pior dia',value:worst,cls:'purple'},{label:'Média diária<br>(necessária)',value:avgNeeded,cls:'gray'}]; const max=Math.max(...items.map(i=>i.value),1); compareBars.innerHTML=items.map(it=>`<div class="bar-item"><div class="bar-value">${money(it.value)}</div><div class="bar-col ${it.cls}" style="height:${Math.max(18,(it.value/max)*130)}px"></div><div class="bar-label">${it.label}</div></div>`).join('')}
+function renderRoutine(rows){const order=[1,2,3,5,6,0], heads={1:'Seg',2:'Ter',3:'Qua',5:'Sex',6:'Sáb',0:'Dom'}, labels=['Manhã','Tarde','Noite']; let html='<div></div>'; order.forEach(d=>html+=`<div class="head">${heads[d]}</div>`); labels.forEach(period=>{html+=`<div class="routine-label">${period}</div>`; order.forEach(d=>{const cfg=state.routine[d]||{}; const key=period.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); const status=key==='manha'?cfg.morning:key==='tarde'?cfg.afternoon:cfg.night; const cls=status==='active'?'active':status==='special'?'special':status==='rest'?'rest':'off'; html+=`<div><i class="cell-dot ${cls}"></i></div>`})}); routineGrid.innerHTML=html; const best=getBestPeriod(rows); bestPeriodText.textContent=best?`${best.name} • ${money(best.ph)} (média)`:'Cadastre mais sessões para descobrir o melhor horário.'}
+function renderAll(){fillMonthSelect(); const rows=getRows(); const daily=groupByDate(rows); renderCards(rows,daily); renderMainChart(daily); renderLastSession(rows); renderStrategies(rows); renderFuel(rows); renderCompareBars(daily); renderRoutine(rows); refreshIcons()}
+openRegister.onclick=()=>{registerForm.date.value=state.settings.referenceDate; registerDialog.showModal()};
+settingsOpenBtn.onclick=()=>{settingsForm.goal.value=state.settings.goal; settingsForm.baseline.value=state.settings.baseline; settingsForm.referenceDate.value=state.settings.referenceDate; settingsForm.fuelPrice.value=state.settings.fuelPrice; settingsForm.confirmedConsumption.value=state.settings.confirmedConsumption; settingsForm.currentFuelSpend.value=state.settings.currentFuelSpend; settingsDialog.showModal()};
+routineOpenBtn.onclick=openRoutineLink.onclick=()=>{const names={1:'Segunda',2:'Terça',3:'Quarta',4:'Quinta',5:'Sexta',6:'Sábado',0:'Domingo'}; const order=[1,2,3,4,5,6,0]; routineFormRows.innerHTML=order.map(d=>{const cfg=state.routine[d]||{enabled:false,label:'Descanso'}; return `<div style="display:grid;grid-template-columns:1fr 1.3fr .9fr .9fr .9fr;gap:10px;align-items:center;border:1px solid rgba(255,255,255,.08);padding:12px;border-radius:14px"><div><strong>${names[d]}</strong><div style="color:var(--muted);font-size:12px">${cfg.enabled?'Ativo':'Descanso'}</div></div><div><input type="text" name="label_${d}" value="${cfg.label||''}" placeholder="Descrição"></div><div><select name="morning_${d}"><option value="active" ${cfg.morning==='active'?'selected':''}>Ativo manhã</option><option value="rest" ${cfg.morning==='rest'?'selected':''}>Descanso</option><option value="special" ${cfg.morning==='special'?'selected':''}>Especial</option></select></div><div><select name="afternoon_${d}"><option value="active" ${cfg.afternoon==='active'?'selected':''}>Ativo tarde</option><option value="rest" ${cfg.afternoon==='rest'?'selected':''}>Descanso</option><option value="special" ${cfg.afternoon==='special'?'selected':''}>Especial</option></select></div><div><select name="night_${d}"><option value="active" ${cfg.night==='active'?'selected':''}>Ativo noite</option><option value="rest" ${cfg.night==='rest'?'selected':''}>Descanso</option><option value="special" ${cfg.night==='special'?'selected':''}>Especial</option></select></div></div>`}).join(''); routineDialog.showModal()};
+fuelOpenBtn.onclick=()=>{fuelForm.distance.value=state.fuelTest.distance??''; fuelForm.reserveDistance.value=state.fuelTest.reserveDistance??''; fuelForm.startLiters.value=state.fuelTest.startLiters??''; fuelForm.reserveLiters.value=state.fuelTest.reserveLiters??''; fuelForm.refillPrice.value=state.fuelTest.refillPrice??''; const consumed=consumedFuelLiters(); fuelForm.previewKmL.value=(Number(state.fuelTest.reserveDistance)>0&&consumed>0)?num(Number(state.fuelTest.reserveDistance)/consumed,2):''; fuelDialog.showModal()};
+registerForm.onsubmit=e=>{e.preventDefault(); const data=Object.fromEntries(new FormData(registerForm).entries()); state.sessions.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),date:data.date,period:data.period,strategy:data.strategy,gross:Number(data.gross)||0,minutes:((Number(data.hours)||0)*60+(Number(data.mins)||0))||0,rides:Number(data.rides)||0,km:Number(data.km)||0,note:data.note||''}); registerDialog.close(); registerForm.reset(); saveState()};
+settingsForm.onsubmit=e=>{e.preventDefault(); const o=Object.fromEntries(new FormData(settingsForm).entries()); state.settings={goal:Number(o.goal)||0,baseline:Number(o.baseline)||0,referenceDate:o.referenceDate,fuelPrice:Number(o.fuelPrice)||0,confirmedConsumption:Number(o.confirmedConsumption)||27,currentFuelSpend:Number(o.currentFuelSpend)||0}; settingsDialog.close(); saveState()};
+routineForm.onsubmit=e=>{e.preventDefault(); const fd=new FormData(routineForm); [1,2,3,4,5,6,0].forEach(d=>{const prev=state.routine[d]||{}; state.routine[d]={enabled:['active','special'].includes(fd.get(`morning_${d}`))||['active','special'].includes(fd.get(`afternoon_${d}`))||['active','special'].includes(fd.get(`night_${d}`)),label:fd.get(`label_${d}`)||prev.label||'',morning:fd.get(`morning_${d}`)||'rest',afternoon:fd.get(`afternoon_${d}`)||'rest',night:fd.get(`night_${d}`)||'rest'}}); routineDialog.close(); saveState()};
+fuelForm.onsubmit=e=>{e.preventDefault(); const o=Object.fromEntries(new FormData(fuelForm).entries()); state.fuelTest={distance:Number(o.distance)||0,reserveDistance:Number(o.reserveDistance)||0,startLiters:Number(o.startLiters)||0,reserveLiters:Number(o.reserveLiters)||0,refillPrice:Number(o.refillPrice)||0}; fuelDialog.close(); saveState()};
+['distance','reserveDistance','startLiters','reserveLiters'].forEach(name=>{fuelForm.elements[name]?.addEventListener('input',()=>{const dist=Number(fuelForm.reserveDistance.value)||0,start=Number(fuelForm.startLiters.value)||0,reserve=Number(fuelForm.reserveLiters.value)||0,consumed=start>reserve?start-reserve:0; fuelForm.previewKmL.value=(dist>0&&consumed>0)?num(dist/consumed,2):''})});
+exportBtn.onclick=()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='projeto-uber-dados.json'; a.click(); URL.revokeObjectURL(a.href)};
+importTrigger.onclick=()=>importFile.click(); importFile.onchange=async e=>{const file=e.target.files[0]; if(!file) return; try{const data=JSON.parse(await file.text()); if(!data.settings||!Array.isArray(data.sessions)) throw new Error('inválido'); state=Object.assign(clone(defaultState),data); saveState(); alert('Dados importados com sucesso.')}catch(err){alert('Arquivo inválido.')} e.target.value=''};
+renderAll();
+refreshIcons();
+</script>
+</body>
+</html>
