@@ -578,8 +578,59 @@ function uberFingerprint(tx){return [tx.eventAt||tx.processedAt||'',normalizeUbe
 function setPdfStatus(msg,type='info'){pdfStatus.textContent=msg||'';pdfStatus.className='login-status'+(msg?' show '+type:'')}
 function moneyFromCell(cell){const m=String(cell||'').match(/-?\s*R\$\s*[\d.]+,\d{2}/);return m?brMoneyToNumber(m[0]):0}
 function reportPeriodFromText(text){const m=text.match(/(\d{1,2})\s+de\s+(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\.?\s+de\s+(\d{4})\s+(\d{1,2})h\s*-\s*(\d{1,2})\s+de\s+(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\.?\s+de\s+(\d{4})\s+(\d{1,2})h/i);if(!m)return null;const start=`${m[3]}-${String(PT_MONTHS[m[2].toLowerCase()]).padStart(2,'0')}-${String(+m[1]).padStart(2,'0')}T${String(+m[4]).padStart(2,'0')}:00:00`,end=`${m[7]}-${String(PT_MONTHS[m[6].toLowerCase()]).padStart(2,'0')}-${String(+m[5]).padStart(2,'0')}T${String(+m[8]).padStart(2,'0')}:00:00`;return{start,end,year:+m[3],label:`${brDate(start.slice(0,10))} a ${brDate(end.slice(0,10))}`}}
-function groupPdfLines(items,width){const raw=[];for(const item of items){const str=String(item.str||'').trim();if(!str)continue;const y=item.transform?.[5]??0,x=item.transform?.[4]??0;let line=raw.find(l=>Math.abs(l.y-y)<2.2);if(!line){line={y,items:[]};raw.push(line)}line.items.push({x,str})}raw.sort((a,b)=>b.y-a.y);return raw.map(line=>{line.items.sort((a,b)=>a.x-b.x);const cols={processed:[],event:[],earnings:[],expense:[],transfer:[],balance:[]};for(const it of line.items){const r=it.x/width;if(r<.19)cols.processed.push(it.str);else if(r<.43)cols.event.push(it.str);else if(r<.57)cols.earnings.push(it.str);else if(r<.73)cols.expense.push(it.str);else if(r<.87)cols.transfer.push(it.str);else cols.balance.push(it.str)}return Object.fromEntries(Object.entries(cols).map(([k,v])=>[k,v.join(' ')]))})}
-function buildUberTransactions(pageLines,year){const records=[];let cur=null;const startRe=/^(seg|ter|qua|qui|sex|sáb|sab|dom)\.,?\s*\d{1,2}\s+de\s+(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\.?$/i;for(const line of pageLines){if(startRe.test(line.processed.trim())){if(cur)records.push(cur);cur={lines:[line]}}else if(cur){if(line.processed==='Processado')continue;cur.lines.push(line)}}if(cur)records.push(cur);return records.map(rec=>{const processed=rec.lines.map(x=>x.processed).filter(Boolean).join(' '),eventText=rec.lines.map(x=>x.event).filter(Boolean).join(' '),eventMatch=eventText.match(/\d{1,2}\s+de\s+(?:jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\.?\s+\d{1,2}:\d{2}/i),eventDateText=eventMatch?.[0]||'',label=normalizeUberLabel(eventDateText?eventText.replace(eventDateText,''):eventText),earnings=moneyFromCell(rec.lines.map(x=>x.earnings).join(' ')),expense=moneyFromCell(rec.lines.map(x=>x.expense).join(' ')),transfer=moneyFromCell(rec.lines.map(x=>x.transfer).join(' ')),balanceVals=rec.lines.map(x=>x.balance).join(' ').match(/-?\s*R\$\s*[\d.]+,\d{2}/g)||[],processedAt=parseProcessedDateTime(processed,year),eventAt=parsePtDateTime(eventDateText,year)||processedAt,kind=uberKind(label,earnings,expense,transfer);const tx={processedAt,eventAt,label,kind,serviceType:kind==='service'?label:null,earnings,expense,transfer,balance:balanceVals.length?brMoneyToNumber(balanceVals[balanceVals.length-1]):null};tx.fingerprint=uberFingerprint(tx);return tx}).filter(tx=>tx.label&&tx.processedAt)}
+function groupPdfLines(items,width){
+  const raw=[];
+  for(const item of items){
+    const str=String(item.str||'').trim();if(!str)continue;
+    const y=item.transform?.[5]??0,x=item.transform?.[4]??0,w=item.width||0;
+    let line=raw.find(l=>Math.abs(l.y-y)<2.2);
+    if(!line){line={y,items:[]};raw.push(line)}
+    line.items.push({x,w,str});
+  }
+  raw.sort((a,b)=>b.y-a.y);
+  raw.forEach(line=>line.items.sort((a,b)=>a.x-b.x));
+
+  const header=raw.find(line=>{
+    const t=line.items.map(i=>i.str).join(' ').toLowerCase();
+    return t.includes('processado')&&t.includes('evento')&&t.includes('saldo');
+  });
+  if(!header)return[];
+
+  const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const h=header.items;
+  const findX=patterns=>{
+    const xs=h.filter(it=>patterns.some(p=>p.test(norm(it.str)))).map(it=>it.x);
+    return xs.length?Math.min(...xs):null;
+  };
+
+  let anchors=[
+    {key:'processed',x:findX([/^processado$/])},
+    {key:'event',x:findX([/^evento$/])},
+    {key:'earnings',x:findX([/^seus$/, /^seus ganhos$/, /^ganhos$/])},
+    {key:'expense',x:findX([/^reembolsos$/, /^reembolsos e despesas$/, /^despesas$/])},
+    {key:'transfer',x:findX([/^transferencias$/, /^transferencia/])},
+    {key:'balance',x:findX([/^saldo$/])}
+  ].filter(a=>Number.isFinite(a.x)).sort((a,b)=>a.x-b.x);
+
+  // Proteção adicional: os quatro campos essenciais precisam existir.
+  const essential=['processed','event','earnings','balance'];
+  if(!essential.every(k=>anchors.some(a=>a.key===k)))return[];
+
+  const boundaries=[];
+  for(let i=0;i<anchors.length-1;i++)boundaries.push((anchors[i].x+anchors[i+1].x)/2);
+
+  return raw.map(line=>{
+    const cols={processed:[],event:[],earnings:[],expense:[],transfer:[],balance:[]};
+    for(const it of line.items){
+      let idx=boundaries.findIndex(b=>it.x<b);
+      if(idx<0)idx=anchors.length-1;
+      const key=anchors[idx]?.key;
+      if(key&&cols[key])cols[key].push(it.str);
+    }
+    return Object.fromEntries(Object.entries(cols).map(([k,v])=>[k,v.join(' ')]));
+  });
+}
+function buildUberTransactions(pageLines,year){const records=[];let cur=null;const startRe=/^(seg|ter|qua|qui|sex|sáb|sab|dom)\.,?\s*\d{1,2}\s+de\s+(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\.?$/i;for(const line of pageLines){if(startRe.test(line.processed.trim())){if(cur)records.push(cur);cur={lines:[line]}}else if(cur){if(/^Processado$/i.test(line.processed.trim()))continue;cur.lines.push(line)}}if(cur)records.push(cur);return records.map(rec=>{const processed=rec.lines.map(x=>x.processed).filter(Boolean).join(' '),eventText=rec.lines.map(x=>x.event).filter(Boolean).join(' '),eventMatch=eventText.match(/\d{1,2}\s+de\s+(?:jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\.?\s+\d{1,2}:\d{2}/i),eventDateText=eventMatch?.[0]||'',label=normalizeUberLabel(eventDateText?eventText.replace(eventDateText,''):eventText),earnings=moneyFromCell(rec.lines.map(x=>x.earnings).join(' ')),expense=moneyFromCell(rec.lines.map(x=>x.expense).join(' ')),transfer=moneyFromCell(rec.lines.map(x=>x.transfer).join(' ')),balanceVals=rec.lines.map(x=>x.balance).join(' ').match(/-?\s*R\$\s*[\d.]+,\d{2}/g)||[],processedAt=parseProcessedDateTime(processed,year),eventAt=parsePtDateTime(eventDateText,year)||processedAt,kind=uberKind(label,earnings,expense,transfer);const tx={processedAt,eventAt,label,kind,serviceType:kind==='service'?label:null,earnings,expense,transfer,balance:balanceVals.length?brMoneyToNumber(balanceVals[balanceVals.length-1]):null};tx.fingerprint=uberFingerprint(tx);return tx}).filter(tx=>tx.label&&tx.processedAt)}
 function aggregateUberDays(transactions){const map={};for(const tx of transactions){const date=(tx.eventAt||tx.processedAt||'').slice(0,10);if(!date)continue;if(!map[date])map[date]={date,earnings:0,expenses:0,rides:0,periods:{Manhã:0,Tarde:0,Noite:0}};const d=map[date];if(tx.kind==='service'){d.earnings+=+tx.earnings||0;d.rides++;const h=+(tx.eventAt||tx.processedAt).slice(11,13);d.periods[h<12?'Manhã':h<18?'Tarde':'Noite']++}if(tx.kind==='expense')d.expenses+=Math.abs(+tx.expense||0)}return Object.values(map).filter(x=>x.rides||x.expenses).sort((a,b)=>a.date.localeCompare(b.date)).map(x=>({...x,period:Object.entries(x.periods).sort((a,b)=>b[1]-a[1])[0]?.[0]||'Noite'}))}
 function updatePdfDayMileage(card){
   if(!card)return;
@@ -613,12 +664,12 @@ async function readUberPdf(file){
     for(let p=1;p<=pdf.numPages;p++){
       const page=await pdf.getPage(p),viewport=page.getViewport({scale:1}),content=await page.getTextContent();
       allText.push(content.items.map(i=>String(i.str||'')).join(' '));
-      if(content.items.some(i=>String(i.str||'').trim()==='Processado'))lines.push(...groupPdfLines(content.items,viewport.width));
+      if(content.items.some(i=>String(i.str||'').trim()==='Processado')){const parsedLines=groupPdfLines(content.items,viewport.width);if(parsedLines.length)lines.push(...parsedLines)}
     }
     const text=allText.join(' '),period=reportPeriodFromText(text);
     if(!period)throw new Error('Não consegui identificar o período deste relatório da Uber.');
     const transactions=buildUberTransactions(lines,period.year);
-    if(!transactions.length)throw new Error('Não encontrei transações no PDF.');
+    if(!transactions.length)throw new Error('Encontrei o relatório, mas não consegui interpretar a tabela de transações.');
     const existingMap=await existingUberTransactionMap(transactions,period);
     transactions.forEach(tx=>tx.distanceKm=existingMap.get(tx.fingerprint)||0);
     const newTransactions=transactions.filter(tx=>!existingMap.has(tx.fingerprint)),days=aggregateUberDays(transactions),serviceTx=transactions.filter(x=>x.kind==='service'),
