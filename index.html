@@ -617,7 +617,7 @@ function groupPdfLines(items,width){
   if(!essential.every(k=>anchors.some(a=>a.key===k)))return[];
 
   const boundaries=[];
-  for(let i=0;i<anchors.length-1;i++)boundaries.push((anchors[i].x+anchors[i+1].x)/2);
+  for(let i=0;i<anchors.length-1;i++)boundaries.push(anchors[i+1].x-4);
 
   return raw.map(line=>{
     const cols={processed:[],event:[],earnings:[],expense:[],transfer:[],balance:[]};
