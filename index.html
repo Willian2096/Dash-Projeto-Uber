@@ -570,8 +570,8 @@ document.querySelectorAll('[data-session-mode]').forEach(b=>b.onclick=()=>setSes
 function brMoneyToNumber(s){if(!s)return 0;const neg=/^-/.test(String(s).trim())?-1:1;return neg*(Number(String(s).replace(/[^\d,.-]/g,'').replace(/\./g,'').replace(',','.').replace('-',''))||0)}
 const PT_MONTHS={jan:1,fev:2,mar:3,abr:4,mai:5,jun:6,jul:7,ago:8,set:9,out:10,nov:11,dez:12};
 function isoFromPtDate(txt){const m=String(txt||'').match(/(\d{1,2})\s+de\s+(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\.?\s+de\s+(\d{4})/i);if(!m)return localToday();return `${m[3]}-${String(PT_MONTHS[m[2].toLowerCase()]).padStart(2,'0')}-${String(+m[1]).padStart(2,'0')}`}
-function parsePtDateTime(txt,year){const m=String(txt||'').match(/(\d{1,2})\s+de\s+(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\.?\s+(\d{1,2}):(\d{2})/i);if(!m)return null;return `${year}-${String(PT_MONTHS[m[2].toLowerCase()]).padStart(2,'0')}-${String(+m[1]).padStart(2,'0')}T${String(+m[3]).padStart(2,'0')}:${m[4]}:00`}
-function parseProcessedDateTime(txt,year){const m=String(txt||'').replace(/\s+/g,' ').trim().match(/(?:seg|ter|qua|qui|sex|sáb|sab|dom)\.,?\s*(\d{1,2})\s+de\s+(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\.?[^0-9]*(\d{1,2}):(\d{2})/i);if(!m)return null;return `${year}-${String(PT_MONTHS[m[2].toLowerCase()]).padStart(2,'0')}-${String(+m[1]).padStart(2,'0')}T${String(+m[3]).padStart(2,'0')}:${m[4]}:00`}
+function parsePtDateTime(txt,year){const s=String(txt||'').replace(/\s+/g,' ').trim(),m=s.match(/(\d{1,2})\s+de\s+(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\.?[^0-9]*(\d{1,2})\D+(\d{2})/i);if(!m)return null;const h=+m[3],min=+m[4];if(h>23||min>59)return null;return `${year}-${String(PT_MONTHS[m[2].toLowerCase()]).padStart(2,'0')}-${String(+m[1]).padStart(2,'0')}T${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}:00`}
+function parseProcessedDateTime(txt,year){const s=String(txt||'').replace(/\s+/g,' ').trim(),m=s.match(/(?:seg|ter|qua|qui|sex|sáb|sab|dom)\.,?\s*(\d{1,2})\s+de\s+(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\.?[^0-9]*(\d{1,2})\D+(\d{2})/i);if(!m)return null;const h=+m[3],min=+m[4];if(h>23||min>59)return null;return `${year}-${String(PT_MONTHS[m[2].toLowerCase()]).padStart(2,'0')}-${String(+m[1]).padStart(2,'0')}T${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}:00`}
 function normalizeUberLabel(s){return String(s||'').replace(/\s+/g,' ').trim()}
 function uberKind(label,earnings,expense,transfer){const l=label.toLowerCase();if(/^(moto|moto prioridade|envios moto|envios\+)$/i.test(label))return'service';if(l.includes('ajuste de ganhos'))return'adjustment';if(expense<0||l.includes('cobrança de inscrição'))return'expense';if(transfer<0&&earnings===0)return'transfer';return'other'}
 function uberFingerprint(tx){return [tx.eventAt||tx.processedAt||'',normalizeUberLabel(tx.label).toLowerCase(),Number(tx.earnings||0).toFixed(2),Number(tx.expense||0).toFixed(2),Number(tx.transfer||0).toFixed(2),tx.processedAt||''].join('|')}
@@ -674,7 +674,7 @@ function buildUberTransactions(pageLines,year){
   return records.map(rec=>{
     const processed=rec.lines.map(x=>x.processed).filter(Boolean).join(' ').replace(/\s+/g,' ').trim(),
       eventText=rec.lines.map(x=>x.event).filter(Boolean).join(' ').replace(/\s+/g,' ').trim(),
-      eventMatch=eventText.match(/\d{1,2}\s+de\s+(?:jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\.?[^0-9]*(\d{1,2}):(\d{2})/i),
+      eventMatch=eventText.match(/\d{1,2}\s+de\s+(?:jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\.?[^0-9]*(\d{1,2})\D+(\d{2})/i),
       eventDateText=eventMatch?.[0]||'',
       label=normalizeUberLabel(eventDateText?eventText.replace(eventDateText,''):eventText),
       earnings=moneyFromCell(rec.lines.map(x=>x.earnings).join(' ')),
@@ -727,7 +727,7 @@ async function readUberPdf(file){
     const text=allText.join(' '),period=reportPeriodFromText(text);
     if(!period)throw new Error('Não consegui identificar o período deste relatório da Uber.');
     const transactions=buildUberTransactions(lines,period.year);
-    if(!transactions.length){const sample=lines.slice(0,6).map(x=>x.processed).filter(Boolean).join(' | ');throw new Error(`Encontrei ${lines.length} linhas da tabela, mas nenhuma transação foi montada. Início lido: ${sample||'não identificado'}.`)}
+    if(!transactions.length){const sample=lines.slice(0,10).map(x=>x.processed).filter(Boolean).join(' | ');throw new Error(`Encontrei ${lines.length} linhas da tabela, mas nenhuma transação foi montada. Início lido: ${sample||'não identificado'}.`)}
     const existingMap=await existingUberTransactionMap(transactions,period);
     transactions.forEach(tx=>tx.distanceKm=existingMap.get(tx.fingerprint)||0);
     const newTransactions=transactions.filter(tx=>!existingMap.has(tx.fingerprint)),days=aggregateUberDays(transactions),serviceTx=transactions.filter(x=>x.kind==='service'),
