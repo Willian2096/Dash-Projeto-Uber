@@ -268,7 +268,7 @@ body.hide-charts .chart,body.hide-charts .bar-chart,body.hide-charts .analysis-d
 <aside class="sidebar">
   <div class="brand driver-brand"><span>Uper</span><span class="driver-brand-light">Driver</span><i data-lucide="bike"></i></div>
   <div class="sidebar-profile-wrap">
-    <button type="button" class="sidebar-profile" id="sidebarProfileButton" aria-expanded="false" aria-controls="sidebarProfileMenu">
+    <button type="button" class="sidebar-profile" id="sidebarProfileButton">
       <span class="sidebar-avatar" id="sidebarProfileAvatar"><span id="sidebarProfileInitial">U</span><i class="sidebar-online-dot"></i></span>
       <span class="sidebar-profile-copy"><b id="sidebarProfileName">Motorista</b><small>Uber Moto</small></span>
     </button>
@@ -633,6 +633,38 @@ function bindSidebarProfile(){
   btn.removeAttribute('aria-controls');
   btn.removeAttribute('aria-expanded');
   btn.onclick=()=>{document.querySelector('[data-page="perfil"]')?.click()};
+}
+function renderProfile(){
+  const box=document.getElementById('profilePageContent');if(!box)return;
+  const r=rows(),d=dayRows(),gross=total(r,'gross'),net=total(r,'net'),mins=total(r,'mins'),rides=total(r,'rides'),goal=+state.settings.goal||0,baseline=+state.settings.baseline||0,acc=baseline+gross,pct=goal?Math.min(100,acc/goal*100):0,
+    name=sidebarDisplayName(),initial=(name.charAt(0)||'U').toUpperCase(),email=currentUser?.email||'—',vehicle=state.settings.vehicleModel||'Não informado',year=state.settings.vehicleYear||'—',fuelType=state.settings.fuelType||'—',
+    latest=d[d.length-1]||null,latestRows=latest?r.filter(x=>x.date===latest.date):[],latestGross=latestRows.length?total(latestRows,'gross'):0,latestRides=latestRows.length?total(latestRows,'rides'):0,latestMins=latestRows.length?total(latestRows,'mins'):0;
+  const max=Math.max(...d.map(x=>x.gross||0),1),barData=d.slice(-7);
+  const bestDay=[...d].sort((a,b)=>(b.net||0)-(a.net||0))[0];
+  const unlockRides=rides>=50,unlockGross=gross>=500,unlockHours=mins>=1200,unlockRoutine=activeDays()>0;
+  box.innerHTML=`<div class="page-head"><div class="page-title"><div class="bigicon"><i data-lucide="user-round"></i></div><div><h1>Meu perfil</h1><p>Seus dados, desempenho e configurações em um só lugar.</p></div></div></div>
+  <div class="profile-hero">
+    <div class="profile-identity-card"><div class="profile-avatar-large"><span>${initial}</span><div class="camera"><i data-lucide="camera"></i></div></div><div class="profile-identity-copy"><div class="profile-name-row"><h2>${name}</h2><button class="icon-btn" data-profile-edit="profile" title="Editar perfil"><i data-lucide="pencil"></i></button></div><div class="subline"><i data-lucide="bike"></i><span>Uber Moto</span></div><div class="profile-status"><i></i>Online e pronto para rodar</div><div class="profile-quote">“Disciplina hoje, liberdade amanhã.”</div></div></div>
+    <div class="profile-account-card"><div class="profile-account-list"><div class="profile-account-row"><span><i data-lucide="mail"></i>E-mail</span><strong>${email}</strong></div><div class="profile-account-row"><span><i data-lucide="bike"></i>Veículo</span><strong>${vehicle}</strong></div><div class="profile-account-row"><span><i data-lucide="calendar-days"></i>Ano</span><strong>${year}</strong></div><div class="profile-account-row"><span><i data-lucide="fuel"></i>Combustível</span><strong>${fuelType}</strong></div></div><button class="btn ghost profile-edit-btn" data-profile-edit="settings"><i data-lucide="pencil"></i>Editar perfil</button></div>
+  </div>
+  <div class="profile-stats">
+    <div class="profile-mini-card"><div class="profile-mini-icon good"><i data-lucide="coins"></i></div><div class="profile-mini-copy"><span>Ganhos no último dia</span><b>${money(latestGross)}</b><small class="sub">${latest?brDate(latest.date):'Sem registro'}</small></div></div>
+    <div class="profile-mini-card"><div class="profile-mini-icon"><i data-lucide="chart-no-axes-column-increasing"></i></div><div class="profile-mini-copy"><span>Corridas no último dia</span><b>${latestRides}</b><small class="sub">Total do último dia registrado</small></div></div>
+    <div class="profile-mini-card"><div class="profile-mini-icon"><i data-lucide="clock-3"></i></div><div class="profile-mini-copy"><span>Tempo no último dia</span><b>${hours(latestMins)}</b><small class="sub">Tempo registrado</small></div></div>
+    <div class="profile-mini-card"><div class="profile-mini-icon purple"><i data-lucide="target"></i></div><div class="profile-mini-copy"><span>Meta do mês</span><b>${num(pct,1)}%</b><small class="sub">${money(acc)} / ${money(goal)}</small></div></div>
+  </div>
+  <div class="profile-main-grid">
+    <div class="profile-panel"><div class="panel-head"><div class="panel-title"><i data-lucide="chart-no-axes-column-increasing"></i><h2>Seus ganhos</h2></div><span class="tag">Últimos registros</span></div><div class="profile-gain-total">${money(gross)}</div><div class="sub">Total das sessões registradas</div><div class="profile-bars">${barData.map(x=>`<div class="profile-bar-item"><div class="profile-bar" style="height:${Math.max(8,(x.gross||0)/max*120)}px"></div><small>${brDate(x.date).slice(0,5)}</small></div>`).join('')}</div></div>
+    <div class="profile-panel"><div class="panel-head"><div class="panel-title"><i data-lucide="chart-column"></i><h2>Desempenho do mês</h2></div></div><div class="profile-progress-big">${num(pct,1)}% da meta</div><div class="profile-progress"><i style="width:${pct}%"></i></div><div class="detail-list"><div class="detail-row"><span>Acumulado</span><strong>${money(acc)}</strong></div><div class="detail-row"><span>Meta mensal</span><strong>${money(goal)}</strong></div><div class="detail-row"><span>Melhor dia</span><strong>${bestDay?brDate(bestDay.date):'—'}</strong></div><div class="detail-row"><span>Média por corrida</span><strong>${rides?money(gross/rides):'—'}</strong></div></div></div>
+    <div class="profile-panel"><div class="panel-head"><div class="panel-title"><i data-lucide="contact-round"></i><h2>Informações da conta</h2></div><button class="icon-btn" data-profile-edit="settings" title="Editar"><i data-lucide="pencil"></i></button></div><div class="profile-account-info"><div class="profile-info-row"><span>Nome</span><b>${name}</b></div><div class="profile-info-row"><span>E-mail</span><b>${email}</b></div><div class="profile-info-row"><span>Veículo</span><b>${vehicle}</b></div><div class="profile-info-row"><span>Ano</span><b>${year}</b></div><div class="profile-info-row"><span>Combustível</span><b>${fuelType}</b></div><div class="profile-info-row"><span>Meta mensal</span><b>${money(goal)}</b></div></div></div>
+  </div>
+  <div class="profile-bottom-grid">
+    <div class="profile-panel"><div class="panel-head"><div class="panel-title"><i data-lucide="bike"></i><h2>Meu veículo</h2></div></div><div class="profile-vehicle"><div class="profile-vehicle-icon"><i data-lucide="bike"></i></div><div><b>${vehicle}</b><div class="sub">${year} • ${fuelType}</div></div></div><button class="btn ghost" data-profile-edit="vehicle" style="margin-top:12px"><i data-lucide="pencil"></i>Editar veículo</button></div>
+    <div class="profile-panel"><div class="panel-head"><div class="panel-title"><i data-lucide="settings"></i><h2>Preferências</h2></div></div><div class="profile-helper">Personalize sua experiência no Uper Driver, metas, tema e comportamento do painel.</div><button class="btn ghost" data-profile-edit="settings" style="margin-top:12px"><i data-lucide="settings"></i>Configurações</button></div>
+    <div class="profile-panel"><div class="panel-head"><div class="panel-title"><i data-lucide="trophy"></i><h2>Conquistas</h2></div><span class="sub">${[unlockRides,unlockGross,unlockHours,unlockRoutine].filter(Boolean).length} de 4</span></div><div class="profile-achievements"><span class="achievement ${unlockRides?'unlocked':''}" title="50 corridas"><i data-lucide="flag"></i></span><span class="achievement ${unlockGross?'unlocked':''}" title="R$ 500 em ganhos"><i data-lucide="coins"></i></span><span class="achievement ${unlockHours?'purple':''}" title="20 horas registradas"><i data-lucide="clock-3"></i></span><span class="achievement ${unlockRoutine?'unlocked':''}" title="Rotina planejada"><i data-lucide="calendar-check"></i></span></div><div class="profile-helper">As conquistas são liberadas automaticamente com base nos seus dados reais.</div></div>
+  </div>`;
+  box.querySelectorAll('[data-profile-edit]').forEach(b=>b.onclick=()=>{const action=b.dataset.profileEdit;if(action==='profile'||action==='settings')openSettingsFromProfile(action==='profile'?'configProfileName':null);if(action==='vehicle')openSettingsFromProfile('vehicleModel')});
+  if(window.lucide)lucide.createIcons();
 }
 function renderSettings(){configGoalTop.textContent=money(+state.settings.goal||0);configGoal.value=state.settings.goal;configFuelPrice.value=state.settings.fuelPrice;configBaseline.value=state.settings.baseline;configDate.value=state.settings.referenceDate;configConsumption.value=state.settings.confirmedConsumption;configProfileName.value=state.settings.profileName||'';vehicleModel.value=state.settings.vehicleModel||'';vehicleYear.value=state.settings.vehicleYear||'';configFuelType.value=state.settings.fuelType||'Gasolina';renderPreferenceToggles();renderDefaultStrategyPicker();applyPreferences()}
 
