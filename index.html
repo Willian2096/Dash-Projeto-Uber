@@ -531,16 +531,21 @@ function monthKeyFromDate(v){return String(v||'').slice(0,7)||currentMonthKey()}
 function monthLabel(key,short=false){if(!/^\d{4}-\d{2}$/.test(String(key||'')))return'—';const[y,m]=key.split('-').map(Number),d=new Date(y,m-1,1,12);const txt=d.toLocaleDateString('pt-BR',{month:short?'short':'long',year:'numeric'});return txt.charAt(0).toUpperCase()+txt.slice(1).replace('.','')}
 function ensureMonthlyGoals(){
   state.settings=state.settings||{};state.settings.preferences=state.settings.preferences||{};
-  const p=state.settings.preferences;
+  const p=state.settings.preferences,legacyMonth=monthKeyFromDate(state.settings.referenceDate||localToday()),legacyGoal=+state.settings.goal||0,legacyBaseline=+state.settings.baseline||0;
   if(!p.monthlyGoals||typeof p.monthlyGoals!=='object')p.monthlyGoals={};
-  const legacyMonth=monthKeyFromDate(state.settings.referenceDate||localToday());
-  if(!Object.keys(p.monthlyGoals).length&&((getMonthlyGoal())>0||(getMonthlyBaseline())>0))p.monthlyGoals[legacyMonth]={goal:getMonthlyGoal(),baseline:getMonthlyBaseline()};
+  if(!Object.keys(p.monthlyGoals).length&&(legacyGoal>0||legacyBaseline>0))p.monthlyGoals[legacyMonth]={goal:legacyGoal,baseline:legacyBaseline};
   if(!p.selectedMonth)p.selectedMonth=legacyMonth||currentMonthKey();
   return p.monthlyGoals;
 }
 function selectedMonthKey(){ensureMonthlyGoals();return state.settings.preferences.selectedMonth||currentMonthKey()}
-function getMonthlyGoal(month=selectedMonthKey()){const g=ensureMonthlyGoals()[month];return g?+g.goal||0:(month===monthKeyFromDate(state.settings.referenceDate)?getMonthlyGoal():0)}
-function getMonthlyBaseline(month=selectedMonthKey()){const g=ensureMonthlyGoals()[month];return g?+g.baseline||0:(month===monthKeyFromDate(state.settings.referenceDate)?getMonthlyBaseline():0)}
+function getMonthlyGoal(month=selectedMonthKey()){
+  const goals=ensureMonthlyGoals(),g=goals[month];if(g)return+g.goal||0;
+  const legacyMonth=monthKeyFromDate(state.settings.referenceDate||localToday());return month===legacyMonth?(+state.settings.goal||0):0;
+}
+function getMonthlyBaseline(month=selectedMonthKey()){
+  const goals=ensureMonthlyGoals(),g=goals[month];if(g)return+g.baseline||0;
+  const legacyMonth=monthKeyFromDate(state.settings.referenceDate||localToday());return month===legacyMonth?(+state.settings.baseline||0):0;
+}
 function setMonthlyGoal(month,goal,baseline=0){if(!/^\d{4}-\d{2}$/.test(month))return;ensureMonthlyGoals()[month]={goal:+goal||0,baseline:+baseline||0}}
 function setSelectedMonth(month,{persist=true}={}){if(!/^\d{4}-\d{2}$/.test(month))return;ensureMonthlyGoals();state.settings.preferences.selectedMonth=month;state.settings.referenceDate=month+'-01';state.settings.goal=getMonthlyGoal(month);state.settings.baseline=getMonthlyBaseline(month);if(persist){localStorage.setItem(KEY,JSON.stringify(state));scheduleCloudSync()}renderAll()}
 function monthKeysForSelectors(){
