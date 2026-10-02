@@ -1,0 +1,24 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict'),{spawnSync}=require('node:child_process');
+const root=path.resolve(__dirname,'..');
+if(process.env.VERCEL_ENV==='production')throw Error('Fase 1 is preview-only. Separate production approval is required.');
+if(process.env.VERCEL_GIT_COMMIT_REF&&process.env.VERCEL_GIT_COMMIT_REF!=='feature/modulos-dashboard')throw Error('Unexpected deployment branch.');
+const base=spawnSync(process.execPath,[path.join(root,'scripts/build-preview.cjs')],{cwd:root,stdio:'inherit'});
+if(base.status!==0)process.exit(base.status||1);
+(async()=>{
+ const phase1Tests=await require(path.join(root,'tests/phase1.test.cjs'))();
+ const target=path.join(root,'dist/index.html');let html=fs.readFileSync(target,'utf8');
+ const once=(needle,replacement)=>{assert.equal(html.split(needle).length-1,1,'Patch point changed: '+needle);html=html.replace(needle,()=>replacement);};
+ once('  const fresh=clone(zeroState),s=settingsR.data;',`  phase1LoadedRaw={user_settings:settingsR.data?[settingsR.data]:[],sessions:sessionsR.data||[],refuels:refuelsR.data||[],routines:routinesR.data||[],strategies:strategiesR.data||[],weekly_checklists:checksR.data||[]};
+  const fresh=clone(zeroState),s=settingsR.data;`);
+ const core=fs.readFileSync(path.join(root,'phase1-core.js'),'utf8'),ui=fs.readFileSync(path.join(root,'phase1-ui.js'),'utf8');
+ once('manualFuelInstall();\nbindChartTooltips();\nrenderAll();\ninitializeAuth();',core+'\n'+ui+'\nmanualFuelInstall();\nphase1Install();\nbindChartTooltips();\nrenderAll();\ninitializeAuth();');
+ for(const [i,m] of [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].entries())if(m[1].trim())new vm.Script(m[1],{filename:'fase1-built-'+i+'.js'});
+ assert.ok(html.includes('syncStateToCloud=phase1Flush;'));
+ assert.ok(html.includes('confirmPdfImport.onclick=phase1ImportPdf;'));
+ assert.ok(!html.includes('odometerDelta'));
+ fs.writeFileSync(target,html);
+ const file=path.join(root,'dist/preview-build.json'),previous=JSON.parse(fs.readFileSync(file,'utf8'));
+ fs.writeFileSync(file,JSON.stringify({...previous,version:'fase1-2026-10-02',previousVersion:previous.version,phase1Tests,totalTests:previous.unitTests+previous.integrationTests+phase1Tests,production:false,manualOdometer:true,goals:'monthly_goals',dailyTotals:'driveup_daily_totals',pdfImport:'driveup_import_pdf_v1'}));
+ console.log('Fase 1 preview built. Tests passed:',previous.unitTests+previous.integrationTests+phase1Tests);
+})().catch(err=>{console.error(err);process.exitCode=1;});
