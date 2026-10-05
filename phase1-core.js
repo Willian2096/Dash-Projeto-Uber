@@ -42,8 +42,19 @@ async function writeRecord(client,change,{exists=true,active=()=>true}={}){
   }
   if(!Object.keys(updates).length)return remote;
   let q=scope(client.from(table).update(updates),table,after);
-  // Atomic compare-and-set for the actual fields being modified, including JSON.
-  for(const k of Object.keys(updates)){const old=remote[k];q=old==null?q.is(k,null):q.eq(k,typeof old==='object'?JSON.stringify(old):old);}
+  // Legacy tables have server-maintained updated_at triggers. Compare the exact
+  // timestamp (including microseconds); preferences belong in the body, not the URL.
+  if(typeof remote.updated_at==='string'&&remote.updated_at.length>0){
+    q=q.eq('updated_at',remote.updated_at);
+  }else{
+    // monthly_goals has no updated_at: retain compare-and-set on its small values.
+    // If an unversioned value is large, fail closed instead of issuing a huge URL.
+    for(const k of Object.keys(updates)){
+      const old=remote[k],value=typeof old==='object'&&old!==null?JSON.stringify(old):old;
+      if(value!=null&&encodeURIComponent(String(value)).length>512)throw Error('Não foi possível verificar a versão deste registro. Baixe o backup antes de recarregar.');
+      q=old==null?q.is(k,null):q.eq(k,value);
+    }
+  }
   const saved=result(await q.select('*').maybeSingle());
   if(!saved)throw Error('Conflito durante o salvamento. Nenhum valor concorrente foi substituído.');
   return saved;
