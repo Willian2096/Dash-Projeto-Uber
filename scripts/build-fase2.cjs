@@ -14,7 +14,7 @@ if(base.status!==0)process.exit(base.status||1);
  const old='https://dash-projeto-uber-git-feature-modulos-dashboard-will13-b9e8.vercel.app';
  const auth=fs.readFileSync(path.join(root,'phase2-auth.js'),'utf8');
 
- once("const supabaseUrl='https://kskddwcbrdqavkmagupf.supabase.co';",auth+"\nconst supabaseUrl='https://kskddwcbrdqavkmagupf.supabase.co';");
+ once("const SUPABASE_URL='https://kskddwcbrdqavkmagupf.supabase.co';",auth+"\nconst SUPABASE_URL='https://kskddwcbrdqavkmagupf.supabase.co';");
  once("emailRedirectTo:'"+old+"'", "emailRedirectTo:DriveUpAuthRedirect.getURL(window.location)");
  once("redirectTo:'"+old+"'", "redirectTo:DriveUpAuthRedirect.getURL(window.location)");
 
