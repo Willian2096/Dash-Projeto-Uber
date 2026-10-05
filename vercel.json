@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "echo 'No external build dependencies'",
-  "buildCommand": "node scripts/build-fase1.cjs",
+  "buildCommand": "node scripts/build-fase2.cjs",
   "outputDirectory": "dist",
   "ignoreCommand": "node -e \"process.exit(process.env.VERCEL_ENV === 'production' ? 0 : 1)\""
 }
