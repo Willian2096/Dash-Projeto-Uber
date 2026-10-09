@@ -20,12 +20,12 @@
       subtitle:gross?'Ganhos das sessões, incluindo gorjetas, antes dos custos.':'Ganhos das sessões após combustível e despesas consideradas.',
       empty:'Nenhuma sessão no mês selecionado.'};
   }
-  function svgContent(m,money,date){
-    const W=820,H=290,L=92,R=26,T=18,B=42,pw=W-L-R,ph=H-T-B;
+  function svgContent(m,money,date,compact=false){
+    const W=compact?420:820,H=compact?240:290,L=compact?78:92,R=compact?20:26,T=18,B=42,pw=W-L-R,ph=H-T-B;
     const xp=i=>L+(m.points.length===1?pw/2:i/(m.points.length-1)*pw);
     const yp=v=>T+ph-(v-m.lower)/(m.upper-m.lower)*ph;
     let h='<title>'+escape(m.title)+'</title><desc>'+escape(m.subtitle)+'</desc>';
-    if(!m.points.length)return h+'<text x="410" y="145" text-anchor="middle" fill="currentColor">'+escape(m.empty)+'</text>';
+    if(!m.points.length)return h+'<text x="'+W/2+'" y="'+H/2+'" text-anchor="middle" fill="currentColor">'+escape(m.empty)+'</text>';
     h+='<defs><linearGradient id="overviewArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--green)" stop-opacity=".28"/><stop offset="100%" stop-color="var(--green)" stop-opacity=".02"/></linearGradient></defs>';
     for(let i=0;i<=4;i++){
       const v=m.lower+(m.upper-m.lower)*i/4,y=yp(v);
@@ -36,7 +36,7 @@
     h+=`<polygon points="${xp(0)},${baseline} ${pts} ${xp(m.points.length-1)},${baseline}" fill="url(#overviewArea)"/>`;
     h+=`<line data-chart-average="${m.average}" x1="${L}" y1="${avgY}" x2="${W-R}" y2="${avgY}" stroke="var(--blue)" stroke-width="2" stroke-dasharray="7 6"/>`;
     h+=`<polyline data-income-series="${m.key}" points="${pts}" fill="none" stroke="var(--green)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>`;
-    const step=Math.max(1,Math.ceil(m.points.length/8));
+    const step=Math.max(1,Math.ceil(m.points.length/(compact?4:8)));
     m.points.forEach((p,i)=>{
       const x=xp(i),y=yp(p.value),label=date(p.date)+' • '+m.label+' • '+money(p.value);
       h+=`<circle cx="${x}" cy="${y}" r="6" fill="var(--green)"/><circle cx="${x}" cy="${y}" r="14" fill="transparent" tabindex="0" aria-label="${escape(label)}" data-chart-tooltip="${escape(encodeURIComponent(label))}"><title>${escape(label)}</title></circle>`;
@@ -70,7 +70,9 @@
       if(title)title.textContent=m.title;if(subtitle)subtitle.textContent=m.subtitle;
       if(legend)legend.innerHTML='<span class="item"><i class="dot"></i>'+escape(m.label)+'</span><span class="item"><i class="dash"></i>Média do período ('+escape(money(m.average))+')</span>';
       svg.setAttribute('role','img');svg.setAttribute('aria-label',m.title);svg.setAttribute('data-income-metric',m.key);
-      svg.innerHTML=svgContent(m,money,date);
+      const compact=svg.clientWidth>0?svg.clientWidth<600:(typeof window!=='undefined'&&window.innerWidth<=800);
+      svg.setAttribute('viewBox',compact?'0 0 420 240':'0 0 820 290');
+      svg.innerHTML=svgContent(m,money,date,compact);
     }
     return draw;
   }
