@@ -69,7 +69,7 @@
     const consumption = adopted(state, until), c = consumption.value;
     const capacity = nonnegative(state.settings?.tankCapacity), current = nonnegative(state.settings?.currentOdometer);
     const out = { refs, latest, consumption, capacity, current, known: false, liters: null, range: null,
-      percent: null, kmSince: null, price: priceAt(state, until), reason: '', warning: '' };
+      percent: null, kmSince: null, price: priceAt(state, until), reason: '', warning: '', balanceAdjusted: false };
     if (!latest) { out.reason = 'Registre um abastecimento para estimar a autonomia.'; return out; }
     if (!positive(capacity)) { out.reason = 'Informe a capacidade do tanque nas configurações.'; return out; }
     if (!positive(c)) { out.reason = 'Informe o consumo estimado ou complete um ciclo entre tanques cheios.'; return out; }
@@ -82,7 +82,14 @@
         out.reason = 'Confira litros e leituras manuais dos abastecimentos.'; return out;
       }
       liters -= (nonnegative(r.odometer) - previous) / c;
-      if (liters < -0.01) { out.reason = 'O histórico indica combustível insuficiente. Confira consumo e abastecimentos ausentes.'; return out; }
+      // A modelled depletion is not a negative fuel debt. A later refill must
+      // restart the estimate, even when the earlier model was slightly short.
+      // Assume zero leftover at that point, add only the recorded new liters,
+      // and expose the uncertainty. Never rewrite refuels or the adopted km/L.
+      if (liters < -0.000001) {
+        out.balanceAdjusted = true;
+        out.warning = 'Estimativa reajustada: um trecho anterior excedeu a autonomia prevista. Nesse abastecimento, consideramos saldo anterior zero e os litros adicionados. Pode haver combustível residual não contabilizado. Confira o consumo e possíveis abastecimentos ausentes; um novo tanque cheio restabelece a referência.';
+      }
       liters = Math.max(0, liters) + nonnegative(r.liters);
       if (liters > capacity + 0.05) { out.reason = 'O saldo estimado ultrapassou o tanque. Confira consumo, capacidade e registros.'; return out; }
       liters = Math.min(capacity, liters);
@@ -90,7 +97,7 @@
     }
     if (current < previous) { out.reason = 'Atualize manualmente o hodômetro: ele está abaixo da última leitura de abastecimento.'; return out; }
     const raw = liters - (current - previous) / c;
-    if (raw < -0.01) out.warning = 'Autonomia estimada esgotada. Confira a leitura manual e registre o próximo abastecimento.';
+    if (raw < -0.01) out.warning = 'Autonomia estimada esgotada. Confira a leitura manual e registre o próximo abastecimento.' + (out.warning ? ' ' + out.warning : '');
     out.liters = Math.max(0, raw); out.range = out.liters * c;
     out.percent = Math.max(0, Math.min(100, out.liters / capacity * 100));
     out.kmSince = current - nonnegative(latest.odometer); out.known = true;
