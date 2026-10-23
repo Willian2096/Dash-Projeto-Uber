@@ -89,9 +89,10 @@ async function phase1ImportPdf(){
    const raw=existing?phase1Raw.get(DriveUpPhase1.id('sessions',{user_id:uid,id:existing.id})):null;
    return {date:d.date,tip:Number(val('tip'))||0,minutes:parseDurationText(val('duration'))||0,km:Number(val('totalKm'))||0,trip_km:Number(val('tripKm'))||0,strategy_key:existing?.strategy||state.settings.defaultStrategy||'seletiva',fuel_price:snap.fuelPrice,fuel_consumption:snap.fuelConsumption,expected_updated_at:raw?.updated_at||null};
   });
-  const transactions=DriveUpPdfSanitize.deep(p.transactions.map(t=>({fingerprint:t.fingerprint,processed_at:t.processedAt,event_at:t.eventAt,event_label:t.label,event_kind:t.kind,service_type:t.serviceType,earnings:t.earnings,expense:t.expense,transfer:t.transfer,balance:t.balance})));
+  const pdfSafe=globalThis.DriveUpPdfSanitize||{text:v=>v,deep:v=>v};
+  const transactions=pdfSafe.deep(p.transactions.map(t=>({fingerprint:t.fingerprint,processed_at:t.processedAt,event_at:t.eventAt,event_label:t.label,event_kind:t.kind,service_type:t.serviceType,earnings:t.earnings,expense:t.expense,transfer:t.transfer,balance:t.balance})));
   setPdfStatus('Salvando importação e recalculando os dias no banco…','info');
-  const r=await dbClient.rpc('driveup_import_pdf_v1',{p_transactions:transactions,p_days:DriveUpPdfSanitize.deep(days),p_file_name:DriveUpPdfSanitize.text(p.fileName),p_report_start:p.period.start,p_report_end:p.period.end,p_allow_overlap:overlap.allow});
+  const r=await dbClient.rpc('driveup_import_pdf_v1',{p_transactions:transactions,p_days:pdfSafe.deep(days),p_file_name:pdfSafe.text(p.fileName),p_report_start:p.period.start,p_report_end:p.period.end,p_allow_overlap:overlap.allow});
   if(r.error)throw r.error;
   // The RPC commits transactions, daily sessions and the log together or rolls back all.
   if(uid!==currentUser?.id)throw Error('A importação foi salva na conta anterior. Entre novamente para consultar.');
